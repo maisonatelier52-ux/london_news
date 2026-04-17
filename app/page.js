@@ -41,22 +41,114 @@ const tabs = [
 export default function Home() {
   const [time, setTime] = useState("");
   const [activeTab, setActiveTab] = useState("forecast");
+  const [weather, setWeather] = useState(null);
 
   useEffect(() => {
+    // const update = () => {
+    //   const now = new Date();
+    //   let h = now.getHours();
+    //   const m = now.getMinutes().toString().padStart(2, "0");
+    //   const ampm = h >= 12 ? "PM" : "AM";
+    //   h = h % 12 || 12;
+    //   setTime(`${h}:${m} ${ampm}`);
+    // };
     const update = () => {
-      const now = new Date();
-      let h = now.getHours();
-      const m = now.getMinutes().toString().padStart(2, "0");
-      const ampm = h >= 12 ? "PM" : "AM";
-      h = h % 12 || 12;
-      setTime(`${h}:${m} ${ampm}`);
-    };
+    const now = new Date();
+
+    const londonTime = now.toLocaleTimeString("en-GB", {
+      timeZone: "Europe/London",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    setTime(londonTime);
+  };
+
     update();
     const iv = setInterval(update, 1000);
     return () => clearInterval(iv);
   }, []);
 
-  const w = weatherData[activeTab];
+  useEffect(() => {
+  const fetchWeather = async () => {
+    try {
+      const res = await fetch(
+        "https://api.open-meteo.com/v1/forecast?latitude=51.5072&longitude=-0.1276&current_weather=true&daily=temperature_2m_max,weathercode&timezone=Europe/London"
+      );
+      const data = await res.json();
+      console.log("weather details:",data);
+      console.log("weather details res:",res);
+      
+
+      const temp = Math.round(data.current_weather.temperature);
+      console.log("temp:",temp);
+      
+      const code = data.current_weather.weathercode;
+      console.log("code:",code);
+      
+
+     const daily = data.daily;
+
+    setWeather({
+      forecast: {
+        temp: temp,
+        realFeel: temp,
+        condition: mapWeatherCodeToText(code),
+        icon: mapWeatherCodeToIcon(code),
+      },
+
+      today: {
+        temp: Math.round(daily.temperature_2m_max[0]),
+        realFeel: Math.round(daily.temperature_2m_max[0]),
+        condition: mapWeatherCodeToText(daily.weathercode[0]),
+        icon: mapWeatherCodeToIcon(daily.weathercode[0]),
+      },
+
+      tomorrow: {
+        temp: Math.round(daily.temperature_2m_max[1]),
+        realFeel: Math.round(daily.temperature_2m_max[1]),
+        condition: mapWeatherCodeToText(daily.weathercode[1]),
+        icon: mapWeatherCodeToIcon(daily.weathercode[1]),
+      },
+
+      weekend: {
+        temp: Math.round(daily.temperature_2m_max[2]),
+        realFeel: Math.round(daily.temperature_2m_max[2]),
+        condition: mapWeatherCodeToText(daily.weathercode[2]),
+        icon: mapWeatherCodeToIcon(daily.weathercode[2]),
+      },
+    });
+    } catch (err) {
+      console.error("Weather error:", err);
+    }
+  };
+
+  fetchWeather();
+}, []);
+
+function mapWeatherCodeToText(code) {
+  if (code === 0) return "Clear sky";
+  if (code <= 3) return "Partly cloudy";
+  if (code <= 48) return "Foggy";
+  if (code <= 67) return "Rain";
+  if (code <= 77) return "Snow";
+  if (code <= 99) return "Storm";
+  return "Cloudy";
+}
+
+function mapWeatherCodeToIcon(code) {
+  if (code === 0) return "sunny";
+  if (code <= 3) return "partly";
+  if (code <= 48) return "cloudy";
+  if (code <= 67) return "rain";
+  if (code <= 77) return "snow";
+  if (code <= 99) return "storm";
+  return "cloudy";
+}
+
+  // const w = weatherData[activeTab];
+  const w = weather ? weather[activeTab] : weatherData[activeTab];
   const headlineList = [
   {
     id: 1,
@@ -111,7 +203,7 @@ export default function Home() {
           {["Beta Release","Life","Culture","Environment","Art","Science","Business","More"].map((n) => (
             <a
               key={n}
-              href="#"
+              href={`${n.toLowerCase()}`}
               className="text-[11px] font-medium tracking-[0.16em] uppercase text-[#4a5a6a] no-underline transition-opacity hover:opacity-55"
             >
               {n}
@@ -178,7 +270,7 @@ export default function Home() {
                   key={key}
                   className={`font-['Barlow',sans-serif] text-[11px] font-normal tracking-[0.10em] uppercase bg-none border-none cursor-pointer transition-colors ${
                     activeTab === key
-                      ? "text-[#2a3a4a] font-bold"
+                      ? "text-black font-bold"
                       : "text-gray-500 hover:text-[#4a5a6a]"
                   }`}
                   onClick={() => setActiveTab(key)}
