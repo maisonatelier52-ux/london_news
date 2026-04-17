@@ -77,15 +77,10 @@ export default function Home() {
         "https://api.open-meteo.com/v1/forecast?latitude=51.5072&longitude=-0.1276&current_weather=true&daily=temperature_2m_max,weathercode&timezone=Europe/London"
       );
       const data = await res.json();
-      console.log("weather details:",data);
-      console.log("weather details res:",res);
       
 
       const temp = Math.round(data.current_weather.temperature);
-      console.log("temp:",temp);
-      
       const code = data.current_weather.weathercode;
-      console.log("code:",code);
       
 
      const daily = data.daily;
