@@ -330,7 +330,7 @@ export default function Home() {
       <section className="relative w-full h-[500px] sm:h-[600px] lg:h-[700px] flex items-center justify-center overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('/images/homepageimages/11062b_7fb998478c5340329ce12947e2674a31~mv2 (1).AVIF')" }}
+          style={{ backgroundImage: "url('/images/home-img-3.webp')" }}
         />
         <div className="absolute inset-0 bg-black/10" />
 
@@ -348,7 +348,7 @@ export default function Home() {
       <section className="relative w-full h-[500px] sm:h-[600px] lg:h-[1000px] flex items-center justify-center overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('/images/homepageimages/home_img_4.AVIF')" }}
+          style={{ backgroundImage: "url('/images/home-img-4.webp')" }}
         />
         {/* <div className="absolute inset-0 bg-black/10" /> */}
 
@@ -369,7 +369,7 @@ export default function Home() {
       <section className="relative w-full h-[500px] sm:h-[600px] lg:h-[800px] flex items-center justify-center overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('/images/homepageimages/home_img_5.AVIF')" }}
+          style={{ backgroundImage: "url('/images/home-img-5.webp')" }}
         />
         {/* <div className="absolute inset-0 bg-black/10" /> */}
 
@@ -449,7 +449,7 @@ export default function Home() {
       <section className="relative w-full h-[500px] sm:h-[600px] lg:h-[800px] flex items-center justify-center overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('/images/homepageimages/home_img_6.AVIF')" }}
+          style={{ backgroundImage: "url('/images/home-img-6.webp')" }}
         />
         <div className="absolute inset-0 bg-black/10" />
 
@@ -467,7 +467,7 @@ export default function Home() {
       <section className="relative w-full h-[500px] sm:h-[600px] lg:h-[1000px] flex items-center justify-center overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('/images/homepageimages/home_img_7.AVIF')" }}
+          style={{ backgroundImage: "url('/images/home-img-7.webp')" }}
         />
         {/* <div className="absolute inset-0 bg-black/10" /> */}
 
@@ -490,7 +490,7 @@ export default function Home() {
   {/* Background Image */}
   <div
     className="absolute inset-0 bg-cover bg-center"
-    style={{ backgroundImage: "url('/images/homepageimages/home_img_8.AVIF')" }}
+    style={{ backgroundImage: "url('/images/home-img-8.webp')" }}
   />
 
   {/* Overlay */}
