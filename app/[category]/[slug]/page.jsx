@@ -1,167 +1,280 @@
+// app/[category]/[slug]/page.jsx
+// ✅ Connected to MongoDB backend via /api/public/articles/slug/:slug
+// ✅ Full SEO: JSON-LD (NewsArticle + BreadcrumbList), OpenGraph, Twitter Card,
+//    Canonical, microdata, semantic breadcrumb UI, Prev/Next navigation
+// ✅ Uses next/image for all images, Link with title attributes
+// ✅ Fixed: fetchPriority (camelCase), author link navigation
+// ✅ Added category validation to prevent wrong category access
+
 "use client";
 
+import { useState, useEffect } from "react";
+import Head from "next/head";
 import Footer from "@/components/Footer";
 import Link from "next/link";
+import Image from "next/image";
+import { notFound, useParams, useRouter } from "next/navigation";
+import {
+  FaXTwitter, FaFacebookF, FaWhatsapp,
+  FaMedium, FaQuora, FaRedditAlien
+} from "react-icons/fa6";
+import { FiCopy } from "react-icons/fi";
 
-// ── Mock article data ─────────────────────────────────────────────────────────
-const ARTICLE = {
-  id: 1,
-  category: "Business",
-  tag: "Economy",
-  title: "Pound falls sharply against dollar after Bank confirms bond-buying end date",
-  standfirst:
-    "The Bank of England's governor has insisted the emergency intervention will end as planned — sending sterling into a tailspin and reigniting fears of a deeper financial crisis.",
-  author: "Eleanor Whitmore",
-  authorRole: "Economics Editor",
-  date: "17 April 2026",
-  readTime: "6 min read",
-  heroImage: "https://images.pexels.com/photos/1550337/pexels-photo-1550337.jpeg",
-  heroCaption: "The Bank of England's Threadneedle Street headquarters. Photograph: Tolga Akmen/EPA",
-  body: [
-    {
-      type: "paragraph",
-      text: "The pound has fallen sharply against the dollar after Andrew Bailey warned the Bank of England would not extend its emergency intervention in financial markets beyond this week, after the turmoil sparked by the government's mini-budget.",
-    },
-    {
-      type: "paragraph",
-      text: "Sterling skidded by more than a cent against the dollar to below $1.10 after the Bank's governor insisted the £65bn scheme to purchase UK government bonds would not be continued beyond the deadline on Friday.",
-    },
-    {
-      type: "pullquote",
-      text: "The herd instinct is powerful. When the herd moves, it moves — and right now, it is moving away from sterling.",
-      attribution: "Senior currency strategist, HSBC",
-    },
-    {
-      type: "paragraph",
-      text: "Pensions industry leaders and one of the Bank's former deputy governors had earlier called for an extension to mop up the ongoing bond market fallout triggered by Kwasi Kwarteng's ill-received mini-budget last month. The calls went unheeded.",
-    },
-    {
-      type: "paragraph",
-      text: "The central bank had started the day by saying it would revamp the scheme's bond-buying firepower — within the existing timeframe — for a second time in as many days, warning there were still 'material risks' in government debt markets affecting UK pension funds.",
-    },
-    {
-      type: "subheading",
-      text: "The pension fund pressure",
-    },
-    {
-      type: "paragraph",
-      text: "At the heart of the crisis is a little-understood investment strategy used by pension funds known as liability-driven investment (LDI). These strategies use derivatives to hedge against interest rate moves, but when gilt yields spiked dramatically, they were forced to sell assets at pace — creating a dangerous spiral.",
-    },
-    {
-      type: "paragraph",
-      text: "The Bank's intervention two weeks ago temporarily arrested that spiral. But as Friday's deadline approaches without an extension, traders and fund managers are once again growing nervous about what comes next.",
-    },
-    {
-      type: "image",
-      src: "https://images.pexels.com/photos/259200/pexels-photo-259200.jpeg",
-      caption: "City traders monitor screens as sterling falls against major currencies. Photograph: Reuters",
-    },
-    {
-      type: "subheading",
-      text: "Markets react with alarm",
-    },
-    {
-      type: "paragraph",
-      text: "Analysts at Goldman Sachs warned that without further central bank support, the UK gilt market remains vulnerable to sharp moves. 'The fundamentals have not improved sufficiently,' said one senior strategist. 'The market is pricing in the possibility of a return to the volatility we saw in late September.'",
-    },
-    {
-      type: "paragraph",
-      text: "The FTSE 100 closed down 1.8% on the day, with financial stocks bearing the brunt of the selling. Housebuilders and consumer discretionary names also fell sharply, reflecting growing concern about the economic outlook for British households.",
-    },
-  ],
+// ─── Config ───────────────────────────────────────────────────────────────────
+const SITE_URL  = process.env.NEXT_PUBLIC_SITE_URL  || "https://www.yourdomain.com";
+const SITE_NAME = process.env.NEXT_PUBLIC_SITE_NAME || "London News";
+const API_BASE  = process.env.NEXT_PUBLIC_API_URL   || "http://localhost:5000/api";
+const TWITTER   = "@londonnews";
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const toIso = (dateStr) => {
+  if (!dateStr) return new Date().toISOString();
+  if (typeof dateStr === "string" && dateStr.includes("/")) {
+    const [d, m, y] = dateStr.split("/");
+    return new Date(`${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`).toISOString();
+  }
+  return new Date(dateStr).toISOString();
 };
 
-const RELATED = [
-  {
-    id: 2,
-    category: "Economy",
-    title: "What the gilt market crisis means for your mortgage",
-    date: "16 April 2026",
-    image: "https://images.pexels.com/photos/672532/pexels-photo-672532.jpeg",
-  },
-  {
-    id: 3,
-    category: "Politics",
-    title: "Kwarteng faces parliamentary inquiry over mini-budget fallout",
-    date: "15 April 2026",
-    image: "https://images.pexels.com/photos/1550337/pexels-photo-1550337.jpeg",
-  },
-  {
-    id: 4,
-    category: "Business",
-    title: "London tech firms attract record foreign investment despite uncertainty",
-    date: "14 April 2026",
-    image: "https://images.pexels.com/photos/358570/pexels-photo-358570.jpeg",
-  },
-];
+const formatDisplay = (dateStr) =>
+  new Date(toIso(dateStr)).toLocaleDateString("en-GB", {
+    day: "numeric", month: "long", year: "numeric",
+  });
 
-// ── Social share icons (inline SVG) ──────────────────────────────────────────
-function ShareBar({ vertical = false }) {
-  const base = "flex items-center justify-center w-8 h-8 border border-black/20 hover:border-black transition-colors cursor-pointer";
-  const wrap = vertical
-    ? "flex flex-col gap-3"
-    : "flex flex-row gap-3";
+const capitalize = (s = "") => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** ImageKit URLs are already absolute; legacy paths get the base URL prepended */
+const resolveImg = (src) => {
+  if (!src) return "";
+  if (src.startsWith("http")) return src;
+  return `${API_BASE.replace("/api", "")}${src}`;
+};
+
+// ─── SEO Head ─────────────────────────────────────────────────────────────────
+function ArticleSEOHead({ article, category, author }) {
+  
+  
+  if (!article) return null;
+
+  // Use article's actual category for canonical URL, not the URL param
+  const canonicalUrl  = `${SITE_URL}/${article.category}/${article.slug}`;
+  const articleImage  = article.image ? resolveImg(article.image) : `${SITE_URL}/images/og-default.webp`;
+  const metaTitle     = article.metaTitle     || `${article.title} | ${capitalize(article.category)} | ${SITE_NAME}`;
+  const metaDesc      = article.metaDescription || article.excerpt || "";
+
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    mainEntityOfPage: { "@type": "WebPage", "@id": canonicalUrl },
+    headline: article.title,
+    description: metaDesc,
+    image: [articleImage],
+    datePublished: toIso(article.date),
+    dateModified:  toIso(article.date),
+    author: author
+      ? { "@type": "Person", name: author.name,
+          url: `${SITE_URL}/authors/${author.slug}` }
+      : { "@type": "Organization", name: SITE_NAME },
+    publisher: {
+      "@type": "NewsMediaOrganization", name: SITE_NAME, url: SITE_URL,
+      logo: { "@type": "ImageObject", url: `${SITE_URL}/images/logo.webp`, width: 600, height: 60 },
+    },
+    articleSection: capitalize(article.category),
+    keywords: Array.isArray(article.keywords) ? article.keywords.join(", ")
+              : article.tags?.join(", ") || "",
+    url: canonicalUrl,
+  };
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home",                       item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: `${capitalize(article.category)} News`, item: `${SITE_URL}/${article.category}` },
+      { "@type": "ListItem", position: 3, name: article.title,                 item: canonicalUrl },
+    ],
+  };
+
   return (
-    <div className={wrap}>
-      {/* X / Twitter */}
-      <button className={base} title="Share on X">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M4 4l16 16M20 4L4 20" />
-        </svg>
-      </button>
-      {/* Facebook */}
-      <button className={base} title="Share on Facebook">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-        </svg>
-      </button>
-      {/* Link */}
-      <button className={base} title="Copy link">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-        </svg>
+    <Head>
+      <title>{metaTitle}</title>
+      <meta name="description"   content={metaDesc} />
+      {article.keywords?.length > 0 && <meta name="keywords" content={article.keywords.join(", ")} />}
+      <link rel="canonical"      href={canonicalUrl} />
+      <meta name="robots"        content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+      {author?.name && <meta name="author" content={author.name} />}
+      <meta property="article:published_time" content={toIso(article.date)} />
+      <meta property="article:modified_time"  content={toIso(article.date)} />
+      <meta property="article:section"        content={capitalize(article.category)} />
+      {article.tags?.map((t) => <meta key={t} property="article:tag" content={t} />)}
+      <meta property="og:type"         content="article" />
+      <meta property="og:site_name"    content={SITE_NAME} />
+      <meta property="og:title"        content={metaTitle} />
+      <meta property="og:description"  content={metaDesc} />
+      <meta property="og:url"          content={canonicalUrl} />
+      <meta property="og:image"        content={articleImage} />
+      <meta property="og:image:width"  content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:image:alt"    content={article.imageAlt || article.title} />
+      <meta property="og:locale"       content="en_GB" />
+      <meta name="twitter:card"        content="summary_large_image" />
+      <meta name="twitter:site"        content={TWITTER} />
+      <meta name="twitter:creator"     content={TWITTER} />
+      <meta name="twitter:title"       content={metaTitle} />
+      <meta name="twitter:description" content={metaDesc} />
+      <meta name="twitter:image"       content={articleImage} />
+      <meta name="twitter:image:alt"   content={article.imageAlt || article.title} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+    </Head>
+  );
+}
+
+// ─── Breadcrumb UI ────────────────────────────────────────────────────────────
+function Breadcrumb({ category, articleTitle }) {
+  return (
+    <div className="border-b border-black/10">
+      <nav aria-label="Breadcrumb" className="max-w-[780px] mx-auto px-4 sm:px-8 py-3">
+        <ol
+          className="flex items-center gap-2 text-[11px] uppercase tracking-[0.12em] text-black/40 flex-wrap"
+          itemScope itemType="https://schema.org/BreadcrumbList"
+        >
+          <li itemScope itemProp="itemListElement" itemType="https://schema.org/ListItem">
+            <Link
+              href="/"
+              title="Go to London News homepage"
+              className="hover:text-black transition-colors no-underline text-black/40"
+              itemProp="item"
+            >
+              <span itemProp="name">Home</span>
+            </Link>
+            <meta itemProp="position" content="1" />
+          </li>
+          <li aria-hidden="true">/</li>
+          <li itemScope itemProp="itemListElement" itemType="https://schema.org/ListItem">
+            <Link
+              href={`/${category}`}
+              title={`Browse all ${capitalize(category)} articles`}
+              className="hover:text-black transition-colors no-underline text-black/40"
+              itemProp="item"
+            >
+              <span itemProp="name">{capitalize(category)}</span>
+            </Link>
+            <meta itemProp="position" content="2" />
+          </li>
+          <li aria-hidden="true">/</li>
+          <li itemScope itemProp="itemListElement" itemType="https://schema.org/ListItem">
+            <span className="text-black/60 line-clamp-1" itemProp="name">{articleTitle}</span>
+            <meta itemProp="position" content="3" />
+          </li>
+        </ol>
+      </nav>
+    </div>
+  );
+}
+
+// ─── Share Bar with React Icons ───────────────────────────────────────────────
+function ShareBar({ vertical = false, url = "", title = "" }) {
+  const enc = encodeURIComponent;
+  const base = "flex items-center justify-center w-8 h-8 border border-black/20 hover:border-transparent transition-all duration-300 cursor-pointer rounded-full hover:scale-110";
+  const wrap = vertical ? "flex flex-col gap-3" : "flex flex-row gap-3";
+
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  const handleCopy = async () => {
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(url);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    }
+  };
+
+  return (
+    <div className={wrap} aria-label="Share article">
+      <a
+        href={`https://twitter.com/intent/tweet?url=${enc(url)}&text=${enc(title)}`}
+        target="_blank" rel="noopener noreferrer"
+        className={`${base} bg-black hover:text-white`}
+        title="Share on X (Twitter)"
+        aria-label="Share on X"
+      >
+        <FaXTwitter size={14} />
+      </a>
+      <a
+        href={`https://www.facebook.com/sharer/sharer.php?u=${enc(url)}`}
+        target="_blank" rel="noopener noreferrer"
+        className={`${base} bg-[#1877F2] hover:text-white hover:border-[#1877F2]`}
+        title="Share on Facebook"
+        aria-label="Share on Facebook"
+      >
+        <FaFacebookF size={14} />
+      </a>
+      <a
+        href={`https://wa.me/?text=${enc(title)}%20${enc(url)}`}
+        target="_blank" rel="noopener noreferrer"
+        className={`${base} bg-[#25D366] hover:text-white hover:border-[#25D366]`}
+        title="Share on WhatsApp"
+        aria-label="Share on WhatsApp"
+      >
+        <FaWhatsapp size={14} />
+      </a>
+      <button
+        className={`${base} bg-black hover:text-white relative`}
+        title="Copy link"
+        aria-label="Copy article link"
+        onClick={handleCopy}
+      >
+        {copySuccess ? (
+          <span className="text-[10px] absolute -top-6 left-1/2 -translate-x-1/2 bg-black text-white px-2 py-0.5 rounded whitespace-nowrap">
+            Copied!
+          </span>
+        ) : (
+          <FiCopy size={14} />
+        )}
       </button>
     </div>
   );
 }
 
-// ── Body renderer ─────────────────────────────────────────────────────────────
+// ─── Body Block ───────────────────────────────────────────────────────────────
 function BodyBlock({ block }) {
   switch (block.type) {
     case "paragraph":
-      return (
-        <p className="text-[15px] sm:text-[16px] text-black/80 leading-[1.75] mb-6">
-          {block.text}
-        </p>
-      );
+      return <p className="text-[15px] sm:text-[16px] text-black/80 leading-[1.75] mb-6">{block.text}</p>;
     case "subheading":
-      return (
-        <h3 className="text-[20px] sm:text-[24px] font-semibold text-black tracking-[-0.02em] mt-10 mb-4">
-          {block.text}
-        </h3>
-      );
+    case "heading": {
+      const Tag = block.level === 2 ? "h2" : "h3";
+      return <Tag className="text-[20px] sm:text-[24px] font-semibold text-black tracking-[-0.02em] mt-10 mb-4">{block.text}</Tag>;
+    }
     case "pullquote":
       return (
-        <div className="my-10 pl-6 border-l-4 border-[#F5C645]">
+        <blockquote className="my-10 pl-6 border-l-4 border-[#F5C645]">
           <p className="text-[20px] sm:text-[24px] font-semibold text-black leading-[1.3] tracking-[-0.01em] italic">
             &ldquo;{block.text}&rdquo;
           </p>
           {block.attribution && (
-            <p className="mt-3 text-[11px] uppercase tracking-[0.14em] text-black/40">
+            <cite className="mt-3 block text-[11px] uppercase tracking-[0.14em] text-black/40 not-italic">
               — {block.attribution}
-            </p>
+            </cite>
           )}
-        </div>
+        </blockquote>
       );
-    case "image":
+    case "image": {
+      const imgSrc = resolveImg(block.src);
       return (
         <figure className="my-10 -mx-4 sm:-mx-0">
-          <img
-            src={block.src}
-            alt={block.caption}
-            className="w-full object-cover max-h-[420px]"
-          />
+          {imgSrc && (
+            <div className="relative w-full h-[280px] sm:h-[380px] lg:h-[420px]">
+              <Image
+                src={imgSrc}
+                alt={block.alt || block.caption || "Article image"}
+                fill
+                sizes="(max-width: 780px) 100vw, 780px"
+                className="object-cover"
+                loading="lazy"
+              />
+            </div>
+          )}
           {block.caption && (
             <figcaption className="mt-3 text-[11px] text-black/40 leading-relaxed px-4 sm:px-0">
               {block.caption}
@@ -169,218 +282,506 @@ function BodyBlock({ block }) {
           )}
         </figure>
       );
+    }
     default:
       return null;
   }
 }
 
-// ── Page ─────────────────────────────────────────────────────────────────────
-export default function NewsDetailPage() {
+// ─── Prev / Next Navigation ───────────────────────────────────────────────────
+function PrevNextNav({ prev, next, category }) {
   return (
-    <div className="min-h-screen w-full font-['Barlow',sans-serif] flex flex-col bg-white">
-
-      {/* ── HEADER ── */}
-      <header
-        className="relative z-10 flex items-center px-4 sm:px-8 lg:px-12 py-4 lg:py-5"
-        style={{
-          backgroundImage: "url('/images/homepageimages/sky_bg_image.webp')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-blue-500/20 to-transparent z-[0]" />
-
-        {/* Mobile */}
-        <div className="flex lg:hidden items-center justify-between w-full relative z-10">
-          <Link href="/" className="text-[12px] font-bold tracking-[0.16em] uppercase text-[#2a3a4a] no-underline">
-            London News
+    <nav aria-label="Article navigation" className="grid grid-cols-1 md:grid-cols-2 gap-6 my-12">
+      <div className="bg-[#f7f6f2] p-5 border-l-4 border-[#F5C645]">
+        <p className="text-[10px] text-black/40 uppercase tracking-wide mb-2">← Previous Article</p>
+        {prev ? (
+          <Link
+            href={`/${category}/${prev.slug}`}
+            title={`Read previous: ${prev.title}`}
+            className="text-[13px] font-semibold text-black hover:text-[#4a5a6a] transition-colors leading-snug no-underline block line-clamp-2"
+          >
+            {prev.title}
           </Link>
-          <a href="#" className="text-[10px] font-bold tracking-[0.14em] uppercase text-[#2a3a4a] no-underline">
-            Subscribe
-          </a>
+        ) : (
+          <p className="text-[13px] text-black/30">No previous article</p>
+        )}
+      </div>
+      <div className="bg-[#f7f6f2] p-5 text-right border-r-4 border-[#F5C645]">
+        <p className="text-[10px] text-black/40 uppercase tracking-wide mb-2">Next Article →</p>
+        {next ? (
+          <Link
+            href={`/${category}/${next.slug}`}
+            title={`Read next: ${next.title}`}
+            className="text-[13px] font-semibold text-black hover:text-[#4a5a6a] transition-colors leading-snug no-underline block line-clamp-2"
+          >
+            {next.title}
+          </Link>
+        ) : (
+          <p className="text-[13px] text-black/30">No next article</p>
+        )}
+      </div>
+    </nav>
+  );
+}
+
+// ─── Skeleton Loader ──────────────────────────────────────────────────────────
+function ArticleSkeleton() {
+  return (
+    <div className="animate-pulse">
+      <div className="max-w-[780px] mx-auto px-4 sm:px-8 pt-10 lg:pt-14">
+        <div className="h-3 w-32 bg-black/10 rounded mb-5" />
+        <div className="h-8 w-full bg-black/10 rounded mb-2" />
+        <div className="h-8 w-3/4 bg-black/10 rounded mb-5" />
+        <div className="h-4 w-full bg-black/10 rounded mb-2" />
+        <div className="h-4 w-5/6 bg-black/10 rounded mb-8" />
+        <div className="flex gap-3 items-center mb-6">
+          <div className="w-9 h-9 rounded-full bg-black/10" />
+          <div className="h-3 w-24 bg-black/10 rounded" />
         </div>
+      </div>
+      <div className="max-w-[1100px] mx-auto px-0 sm:px-8 mt-8">
+        <div className="w-full h-[260px] sm:h-[400px] lg:h-[560px] bg-black/10" />
+      </div>
+      <div className="max-w-[780px] mx-auto px-4 sm:px-8 mt-10 space-y-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className={`h-4 bg-black/10 rounded ${i % 3 === 2 ? "w-3/4" : "w-full"}`} />
+        ))}
+      </div>
+    </div>
+  );
+}
 
-        {/* Desktop */}
-        <nav className="hidden lg:flex items-center gap-8 flex-1 justify-center relative z-10">
-          {["Beta Release", "Life", "Culture", "Environment", "Art", "Science", "Business", "More"].map((n) => (
-            <a
-              key={n}
-              href={`${n.toLowerCase()}`}
-              className="text-[11px] font-medium tracking-[0.16em] uppercase text-[#4a5a6a] no-underline transition-opacity hover:opacity-55"
-            >
-              {n}
-            </a>
-          ))}
-        </nav>
-        <a
-          href="#"
-          className="hidden lg:block text-[11px] font-bold tracking-[0.16em] uppercase text-[#2a3a4a] no-underline whitespace-nowrap shrink-0 relative z-10"
-        >
-          Customise / Subscribe
-        </a>
-      </header>
+// ─── Shared Header ────────────────────────────────────────────────────────────
+function SiteHeader() {
+  const NAV_ITEMS = ["Beta Release", "Life", "Culture", "Environment", "Art", "Science", "Business"];
+  return (
+    <header
+      className="relative z-10 flex items-center px-4 sm:px-8 lg:px-12 py-4 lg:py-5"
+      style={{ backgroundImage: "url('/images/homepageimages/sky_bg_image.webp')", backgroundSize: "cover", backgroundPosition: "center" }}
+    >
+      <div className="absolute inset-0 bg-gradient-to-b from-blue-500/20 to-transparent z-[0]" />
+      <div className="flex lg:hidden items-center justify-between w-full relative z-10">
+        <Link href="/" title="London News - Home" className="text-[12px] font-bold tracking-[0.16em] uppercase text-[#2a3a4a] no-underline">{SITE_NAME}</Link>
+        <a href="#" title="Subscribe to London News" className="text-[10px] font-bold tracking-[0.14em] uppercase text-[#2a3a4a] no-underline">Subscribe</a>
+      </div>
+      <nav className="hidden lg:flex items-center gap-8 flex-1 justify-center relative z-10" aria-label="Main navigation">
+        {NAV_ITEMS.map((n) => (
+          <a
+            key={n}
+            href={`/${n.toLowerCase().replace(/\s+/g, "-")}`}
+            title={`Browse ${n} news`}
+            className="text-[11px] font-medium tracking-[0.16em] uppercase text-[#4a5a6a] no-underline transition-opacity hover:opacity-55"
+          >
+            {n}
+          </a>
+        ))}
+      </nav>
+      <a
+        href="#"
+        title="Customise your news feed or subscribe"
+        className="hidden lg:block text-[11px] font-bold tracking-[0.16em] uppercase text-[#2a3a4a] no-underline whitespace-nowrap shrink-0 relative z-10"
+      >
+        Customise / Subscribe
+      </a>
+    </header>
+  );
+}
 
-      {/* ── BREADCRUMB ── */}
-      <div className="border-b border-black/10">
-        <div className="max-w-[780px] mx-auto px-4 sm:px-8 py-3 flex items-center gap-2 text-[11px] uppercase tracking-[0.12em] text-black/40">
-          <Link href="/" className="hover:text-black transition-colors no-underline text-black/40">Home</Link>
-          <span>/</span>
-          <Link href="/category" className="hover:text-black transition-colors no-underline text-black/40">Business</Link>
-          <span>/</span>
-          <span className="text-black/60">Economy</span>
+// ─── Page ─────────────────────────────────────────────────────────────────────
+export default function NewsDetailPage() {
+  const params   = useParams();
+  const router   = useRouter();
+  const slug     = params?.slug;
+  const category = params?.category;
+
+  const [article,     setArticle]     = useState(null);
+  const [related,     setRelated]     = useState([]);
+  const [prevArticle, setPrevArticle] = useState(null);
+  const [nextArticle, setNextArticle] = useState(null);
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState(null);
+  const [shareUrl,    setShareUrl]    = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") setShareUrl(window.location.href);
+  }, []);
+
+  useEffect(() => {
+    if (!slug || !category) return;
+
+    let isMounted = true;
+    setLoading(true);
+    setError(null);
+
+    fetch(`${API_BASE}/public/articles/slug/${slug}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`Article not found (${res.status})`);
+        return res.json();
+      })
+      .then(({ article: fetchedArticle, prevArticle: fetchedPrev, nextArticle: fetchedNext, related: fetchedRelated }) => {
+        if (!isMounted) return;
+        
+        // ── VALIDATE CATEGORY MATCHES ──
+        // Check if the article's category slug matches the URL category
+        if (fetchedArticle.category.toLowerCase() !== category.toLowerCase()) {
+          console.warn(`Category mismatch: URL has "${category}" but article belongs to "${fetchedArticle.category}"`);
+          throw new Error(`Article not found in ${category} category`);
+        }
+        
+        setArticle(fetchedArticle);
+        setPrevArticle(fetchedPrev);
+        setNextArticle(fetchedNext);
+        setRelated(fetchedRelated || []);
+      })
+      .catch((err) => {
+        if (isMounted) {
+          console.error("Failed to fetch article:", err);
+          setError(err.message);
+        }
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+      
+    return () => { isMounted = false; };
+  }, [slug, category]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen w-full font-['Barlow',sans-serif] flex flex-col bg-white">
+        <SiteHeader />
+        <ArticleSkeleton />
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error || !article) {
+    // return (
+    //   <div className="min-h-screen w-full font-['Barlow',sans-serif] flex flex-col bg-white">
+    //     <SiteHeader />
+    //     <div className="max-w-[780px] mx-auto px-4 sm:px-8 py-20 text-center">
+    //       <h1 className="text-2xl font-semibold text-black mb-4">Article Not Found</h1>
+    //       <p className="text-black/60 mb-2">
+    //         The article you're looking for doesn't exist in the {capitalize(category || "this")} category or has been moved.
+    //       </p>
+    //       {error && <p className="text-[13px] text-black/40 mb-6">{error}</p>}
+    //       <Link href={`/${category}`} title={`Back to ${capitalize(category || "Category")} articles`} className="inline-block text-[#F5C645] underline mr-4">
+    //         Back to {capitalize(category || "Category")}
+    //       </Link>
+    //       <Link href="/" title="Go to London News homepage" className="inline-block text-black/50 underline">Home</Link>
+    //     </div>
+    //     <Footer />
+    //   </div>
+    // );
+    notFound();
+  }
+
+  const authorInitials = article.author?.name
+    ?.split(" ").map((n) => n[0]).join("") || "LN";
+
+  const liveShareUrl = shareUrl || `${SITE_URL}/${article.category}/${article.slug}`;
+  const heroImg      = resolveImg(article.image);
+  const authorImg    = resolveImg(article.author?.profileImage);
+
+  // Generate author slug for the link
+  const authorSlug = article.author?.slug || null;
+
+  return (
+    <div
+      className="min-h-screen w-full font-['Barlow',sans-serif] flex flex-col bg-white"
+      itemScope itemType="https://schema.org/NewsArticle"
+    >
+      <ArticleSEOHead article={article} category={category} author={article.author} />
+
+      {/* Hidden Microdata */}
+      <meta itemProp="headline"       content={article.title} />
+      <meta itemProp="description"    content={article.excerpt} />
+      {article.image && <meta itemProp="image" content={resolveImg(article.image)} />}
+      <meta itemProp="datePublished"  content={toIso(article.date)} />
+      <meta itemProp="dateModified"   content={toIso(article.date)} />
+      <meta itemProp="articleSection" content={capitalize(article.category)} />
+      {article.tags?.length > 0 && <meta itemProp="keywords" content={article.tags.join(", ")} />}
+      <div itemProp="author" itemScope itemType="https://schema.org/Person" style={{ display: "none" }}>
+        <meta itemProp="name" content={article.author?.name || SITE_NAME} />
+      </div>
+      <div itemProp="publisher" itemScope itemType="https://schema.org/Organization" style={{ display: "none" }}>
+        <meta itemProp="name" content={SITE_NAME} />
+        <div itemProp="logo" itemScope itemType="https://schema.org/ImageObject">
+          <meta itemProp="url" content={`${SITE_URL}/images/logo.webp`} />
         </div>
       </div>
 
+      <SiteHeader />
+      <Breadcrumb category={article.category} articleTitle={article.title} />
+
       {/* ── ARTICLE HEADER ── */}
       <div className="max-w-[780px] mx-auto px-4 sm:px-8 pt-10 lg:pt-14 w-full">
-        {/* Category tag */}
         <div className="flex items-center gap-3 mb-5">
           <div className="w-[32px] h-[3px] bg-[#F5C645]" />
           <span className="text-[10px] font-bold tracking-[0.18em] uppercase text-[#4a5a6a]">
-            {ARTICLE.category} · {ARTICLE.tag}
+            {article.categoryName || capitalize(article.category)} · {article.tags?.[0] || "News"}
           </span>
         </div>
 
-        {/* Headline */}
-        <h1 className="font-['Poppins',sans-serif] font-semibold text-[28px] sm:text-[38px] lg:text-[48px] leading-[1.05] tracking-[-0.03em] text-black">
-          {ARTICLE.title}
+        <h1
+          className="font-['Poppins',sans-serif] font-semibold text-[28px] sm:text-[38px] lg:text-[48px] leading-[1.05] tracking-[-0.03em] text-black"
+          itemProp="name"
+        >
+          {article.title}
         </h1>
 
-        {/* Standfirst */}
         <p className="mt-5 text-[16px] sm:text-[18px] text-black/60 leading-[1.6] font-light">
-          {ARTICLE.standfirst}
+          {article.excerpt}
         </p>
 
-        {/* Meta row */}
-        <div className="mt-6 pt-6 border-t border-black/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {/* Author + Date */}
+        <div className="mt-6 pt-6 border-t border-black/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-[#4a5a6a] flex items-center justify-center text-white text-[13px] font-semibold shrink-0">
-              {ARTICLE.author.split(" ").map((n) => n[0]).join("")}
-            </div>
+            {authorImg ? (
+              <div className="relative w-9 h-9 rounded-full overflow-hidden shrink-0">
+                <Image
+                  src={authorImg}
+                  alt={`${article.author?.name || "Author"} profile picture`}
+                  fill
+                  sizes="36px"
+                  className="object-cover"
+                  priority
+                />
+              </div>
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-[#4a5a6a] flex items-center justify-center text-white text-[13px] font-semibold shrink-0">
+                {authorInitials}
+              </div>
+            )}
             <div>
-              <p className="text-[13px] font-semibold text-black">{ARTICLE.author}</p>
-              <p className="text-[11px] text-black/40 uppercase tracking-wide">{ARTICLE.authorRole}</p>
+              {/* Author name links to /authors/[slug] */}
+              {authorSlug ? (
+                <Link
+                  href={`/authors/${authorSlug}`}
+                  title={`View articles by ${article.author?.name}`}
+                  className="text-[13px] font-semibold text-black hover:text-[#4a5a6a] transition-colors no-underline"
+                >
+                  {article.author?.name || "Staff Writer"}
+                </Link>
+              ) : (
+                <p className="text-[13px] font-semibold text-black">
+                  {article.author?.name || "Staff Writer"}
+                </p>
+              )}
+              <p className="text-[11px] text-black/40 uppercase tracking-wide">
+                {article.author?.country || "Journalist"}
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-4 text-[11px] text-black/40 uppercase tracking-wide">
-            <span>{ARTICLE.date}</span>
+          <div className="flex items-center gap-4 text-[11px] text-black/70 uppercase tracking-wide">
+            <time dateTime={toIso(article.date)}>{formatDisplay(article.date)}</time>
             <span>·</span>
-            <span>{ARTICLE.readTime}</span>
+            <span>{article.readTime}</span>
           </div>
         </div>
 
-        {/* Share bar mobile */}
+        {/* Mobile share bar */}
         <div className="mt-5 sm:hidden">
-          <ShareBar />
+          <ShareBar url={liveShareUrl} title={article.title} />
         </div>
       </div>
 
       {/* ── HERO IMAGE ── */}
       <div className="max-w-[1100px] mx-auto px-0 sm:px-8 mt-8 w-full">
         <figure className="w-full">
-          <div className="w-full h-[260px] sm:h-[400px] lg:h-[560px] overflow-hidden">
-            <img
-              src={ARTICLE.heroImage}
-              alt={ARTICLE.title}
-              className="w-full h-full object-cover"
-            />
+          <div className="w-full h-[260px] sm:h-[400px] lg:h-[560px] overflow-hidden bg-black/5 relative">
+            {heroImg && (
+              <Image
+                src={heroImg}
+                alt={article.imageAlt || article.title}
+                fill
+                sizes="(max-width: 1100px) 100vw, 1100px"
+                priority
+                fetchPriority="high"
+                className="object-cover"
+              />
+            )}
           </div>
-          <figcaption className="mt-3 text-[11px] text-black/40 leading-relaxed px-4 sm:px-0">
-            {ARTICLE.heroCaption}
-          </figcaption>
+          {article.imageAlt && (
+            <figcaption className="mt-3 text-[11px] text-black/40 leading-relaxed px-4 sm:px-0">
+              {article.imageAlt}
+            </figcaption>
+          )}
         </figure>
       </div>
 
       {/* ── ARTICLE BODY ── */}
-      <div className="max-w-[780px] mx-auto px-4 sm:px-8 mt-10 lg:mt-14 w-full relative">
-
-        {/* Sticky share bar desktop */}
+      <div
+        className="max-w-[780px] mx-auto px-4 sm:px-8 mt-10 lg:mt-14 w-full relative"
+        itemProp="articleBody"
+      >
+        {/* Desktop sticky share bar */}
         <div className="hidden lg:block absolute -left-16 top-0">
           <div className="sticky top-24">
-            <ShareBar vertical />
+            <ShareBar vertical url={liveShareUrl} title={article.title} />
           </div>
         </div>
 
-        {/* Body content */}
         <div className="article-body">
-          {ARTICLE.body.map((block, i) => (
-            <BodyBlock key={i} block={block} />
-          ))}
+          {article.content?.map((block, i) => <BodyBlock key={i} block={block} />)}
         </div>
 
         {/* Tags */}
-        <div className="mt-12 pt-8 border-t border-black/10 flex flex-wrap gap-2">
-          {["Bank of England", "Sterling", "Economy", "Mini-Budget", "Andrew Bailey"].map((tag) => (
-            <span
-              key={tag}
-              className="px-3 py-1 text-[10px] uppercase tracking-[0.12em] border border-black/20 text-black/50 hover:border-black hover:text-black transition-colors cursor-pointer"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
+        {article.tags?.length > 0 && (
+          <div className="mt-12 pt-8 border-t border-black/20 flex flex-wrap gap-2">
+            {article.tags.map((tag) => (
+              <span key={tag}
+                className="px-3 py-1 text-[10px] uppercase tracking-[0.12em] border border-black text-black transition-colors">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <PrevNextNav prev={prevArticle} next={nextArticle} category={article.category} />
 
         {/* Author bio */}
-        <div className="mt-10 p-6 bg-[#f7f6f2] flex gap-5 items-start">
-          <div className="w-12 h-12 rounded-full bg-[#4a5a6a] flex items-center justify-center text-white text-[15px] font-semibold shrink-0">
-            EW
+        {article.author && (
+          <div className="mt-4 p-6 bg-[#f7f6f2] flex gap-5 items-start">
+            {authorImg ? (
+              <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0">
+                <Image
+                  src={authorImg}
+                  alt={`${article.author.name} profile picture`}
+                  fill
+                  sizes="48px"
+                  className="object-cover"
+                  loading="lazy"
+                />
+              </div>
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-[#4a5a6a] flex items-center justify-center text-white text-[15px] font-semibold shrink-0">
+                {authorInitials}
+              </div>
+            )}
+            <div className="flex-1">
+              {authorSlug ? (
+                <Link
+                  href={`/authors/${authorSlug}`}
+                  title={`View all articles by ${article.author.name}`}
+                >
+                  <p className="text-[13px] font-bold text-black hover:text-[#4a5a6a] transition-colors">{article.author.name}</p>
+                </Link>
+              ) : (
+                <p className="text-[13px] font-bold text-black">{article.author.name}</p>
+              )}
+              <p className="text-[11px] uppercase tracking-wide text-black/40 mb-2">
+                {article.author.country || "Journalist"}
+              </p>
+              <p className="text-[13px] text-black/60 leading-relaxed">{article.author.bio}</p>
+              {article.author.social && (
+                <div className="flex gap-3 mt-3">
+                  {article.author.social.twitter && (
+                    <a
+                      href={article.author.social.twitter}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={`Follow ${article.author.name} on X (Twitter)`}
+                      className="w-8 h-8 flex items-center justify-center rounded-full border border-black/20 text-black/40 hover:bg-black hover:text-white hover:border-black transition-all duration-300"
+                    >
+                      <FaXTwitter size={14} />
+                    </a>
+                  )}
+                  {article.author.social.medium && (
+                    <a
+                      href={article.author.social.medium}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={`Follow ${article.author.name} on Medium`}
+                      className="w-8 h-8 flex items-center justify-center rounded-full border border-black/20 text-black/40 hover:bg-black hover:text-white hover:border-black transition-all duration-300"
+                    >
+                      <FaMedium size={14} />
+                    </a>
+                  )}
+                  {article.author.social.quora && (
+                    <a
+                      href={article.author.social.quora}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={`Follow ${article.author.name} on Quora`}
+                      className="w-8 h-8 flex items-center justify-center rounded-full border border-black/20 text-black/40 hover:bg-[#B92B27] hover:text-white hover:border-[#B92B27] transition-all duration-300"
+                    >
+                      <FaQuora size={14} />
+                    </a>
+                  )}
+                  {article.author.social.reddit && (
+                    <a
+                      href={article.author.social.reddit}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={`Follow ${article.author.name} on Reddit`}
+                      className="w-8 h-8 flex items-center justify-center rounded-full border border-black/20 text-black/40 hover:bg-[#FF4500] hover:text-white hover:border-[#FF4500] transition-all duration-300"
+                    >
+                      <FaRedditAlien size={14} />
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-          <div>
-            <p className="text-[13px] font-bold text-black">{ARTICLE.author}</p>
-            <p className="text-[11px] uppercase tracking-wide text-black/40 mb-2">{ARTICLE.authorRole}</p>
-            <p className="text-[13px] text-black/60 leading-relaxed">
-              Eleanor Whitmore has covered the Bank of England and UK macroeconomic policy for London News since 2019. She previously reported from the Treasury and the IMF in Washington.
-            </p>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* ── RELATED STORIES ── */}
-      <section className="w-full bg-black mt-16">
-        <div className="max-w-[1100px] mx-auto px-4 sm:px-8 lg:px-12 py-14 lg:py-20">
-          {/* Header */}
-          <div className="flex items-center gap-4 mb-10">
-            <div className="w-[40px] h-[3px] bg-[#F5C645]" />
-            <span className="text-[10px] font-bold tracking-[0.18em] uppercase text-white/50">
-              Related Stories
-            </span>
-            <div className="flex-1 h-px bg-white/10" />
+      {related.length > 0 && (
+        <section className="w-full bg-black mt-16" aria-label="Related stories">
+          <div className="max-w-[1100px] mx-auto px-4 sm:px-8 lg:px-12 py-14 lg:py-20">
+            <div className="flex items-center gap-4 mb-10">
+              <div className="w-[40px] h-[3px] bg-[#F5C645]" />
+              <span className="text-[10px] font-bold tracking-[0.18em] uppercase text-white/50">Related Stories</span>
+              <div className="flex-1 h-px bg-white/10" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+              {related.map((item) => {
+                const relatedImg = resolveImg(item.image);
+                return (
+                  <Link
+                    key={item.id}
+                    href={`/${item.category}/${item.slug}`}
+                    title={`Read related: ${item.title}`}
+                    className="group no-underline flex flex-col gap-0"
+                  >
+                    <div className="overflow-hidden h-[180px] bg-white/5 relative">
+                      {relatedImg && (
+                        <Image
+                          src={relatedImg}
+                          alt={item.imageAlt || item.title}
+                          fill
+                          sizes="(max-width: 640px) 100vw, 33vw"
+                          className="object-cover transition-transform duration-700 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      )}
+                    </div>
+                    <span className="mt-3 text-[10px] font-bold tracking-[0.16em] uppercase text-[#F5C645]">
+                      {item.categoryName || capitalize(item.category)}
+                    </span>
+                    <h4 className="mt-2 text-[16px] sm:text-[18px] font-semibold leading-[1.2] text-white tracking-[-0.01em] group-hover:text-white/70 transition-colors line-clamp-2">
+                      {item.title}
+                    </h4>
+                    <time dateTime={toIso(item.date)} className="mt-2 text-[11px] text-white/30 uppercase tracking-wide">
+                      {formatDisplay(item.date)}
+                    </time>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
-
-          {/* Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            {RELATED.map((item) => (
-              <Link key={item.id} href={`/news/${item.id}`} className="group no-underline flex flex-col gap-0">
-                <div className="overflow-hidden h-[180px]">
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                </div>
-                <span className="mt-3 text-[10px] font-bold tracking-[0.16em] uppercase text-[#F5C645]">
-                  {item.category}
-                </span>
-                <h4 className="mt-2 text-[16px] sm:text-[18px] font-semibold leading-[1.2] text-white tracking-[-0.01em] group-hover:text-white/70 transition-colors">
-                  {item.title}
-                </h4>
-                <p className="mt-2 text-[11px] text-white/30 uppercase tracking-wide">{item.date}</p>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ── MOOD STRIP ── */}
-      <section className="w-full bg-black border-t border-white/5 py-8 px-4 sm:px-8 lg:px-12">
+      <section className="w-full bg-black border-t border-white/5 py-8 px-4 sm:px-8 lg:px-12" aria-label="London mood">
         <div className="max-w-[1100px] mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div>
-            <p className="text-[13px] sm:text-[15px] font-bold uppercase text-[#F5C645] tracking-wide">
-              London's Mood Right Now
-            </p>
-            <p className="text-[11px] font-normal uppercase text-white/40 mt-1">
-              Updated 32 minutes ago
-            </p>
+            <p className="text-[13px] sm:text-[15px] font-bold uppercase text-[#F5C645] tracking-wide">London's Mood Right Now</p>
+            <p className="text-[11px] font-normal uppercase text-white/40 mt-1">Updated 32 minutes ago</p>
           </div>
           <div className="flex gap-8 text-white/70 text-[12px] uppercase tracking-wide">
             <p><span className="text-[18px] text-white font-light">82% </span>Happy</p>
@@ -393,7 +794,6 @@ export default function NewsDetailPage() {
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
       <Footer />
     </div>
   );
