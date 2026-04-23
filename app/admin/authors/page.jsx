@@ -1,14 +1,12 @@
 
 
 // // app/admin/authors/page.jsx
-// // ✅ Updated for ImageKit — images are stored as full absolute URLs, no localhost prefix needed
-
 // "use client";
 
 // import { useState, useEffect } from "react";
 // import {
 //   FiPlus, FiEdit2, FiTrash2, FiX, FiSave, FiTwitter, FiGlobe,
-//   FiUser, FiMapPin, FiAlertCircle, FiSearch,
+//   FiUser, FiMapPin, FiAlertCircle, FiSearch, FiLink,
 // } from "react-icons/fi";
 // import { FaQuora, FaRedditAlien, FaMedium } from "react-icons/fa";
 // import { authorsAdminAPI, categoriesAdminAPI } from "@/services/adminAPI";
@@ -16,12 +14,19 @@
 
 // const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
-// /** ImageKit URLs are already absolute; legacy paths get the base URL prepended */
 // const resolveImg = (src) => {
 //   if (!src) return "";
 //   if (src.startsWith("http")) return src;
 //   return `${API_BASE.replace("/api", "")}${src}`;
 // };
+
+// function generateSlug(name) {
+//   return name
+//     .toLowerCase()
+//     .trim()
+//     .replace(/[^a-z0-9]+/g, "-")
+//     .replace(/^-|-$/g, "");
+// }
 
 // function ImageToast({ message, onClose }) {
 //   if (!message) return null;
@@ -29,15 +34,17 @@
 //     <div className="flex items-start gap-3 bg-red-950/60 border border-red-500/40 text-red-300 px-4 py-3 rounded-xl text-sm mt-2">
 //       <FiAlertCircle size={15} className="shrink-0 mt-0.5" />
 //       <span className="flex-1">{message}</span>
-//       <button type="button" onClick={onClose} className="shrink-0 hover:text-red-200 cursor-pointer"><FiX size={13} /></button>
+//       <button type="button" onClick={onClose} className="shrink-0 hover:text-red-200 cursor-pointer">
+//         <FiX size={13} />
+//       </button>
 //     </div>
 //   );
 // }
 
 // const EMPTY_FORM = {
-//   name: '', gender: 'Male', country: '', bio: '',
-//   websiteLink: '', email: '', category: '',
-//   social: { twitter: '', quora: '', reddit: '', medium: '' },
+//   name: "", slug: "", gender: "Male", country: "", bio: "",
+//   websiteLink: "", email: "", category: "",
+//   social: { twitter: "", quora: "", reddit: "", medium: "" },
 // };
 
 // export default function AuthorsPage() {
@@ -49,12 +56,13 @@
 //   const [showModal, setShowModal]       = useState(false);
 //   const [editingAuthor, setEditingAuthor] = useState(null);
 //   const [imageFile, setImageFile]       = useState(null);
-//   const [imagePreview, setImagePreview] = useState('');
-//   const [imageToast, setImageToast]     = useState('');
+//   const [imagePreview, setImagePreview] = useState("");
+//   const [imageToast, setImageToast]     = useState("");
 //   const [formData, setFormData]         = useState(EMPTY_FORM);
 //   const [formErrors, setFormErrors]     = useState({});
 //   const [saving, setSaving]             = useState(false);
-//   const [confirm, setConfirm]           = useState({ open: false, id: null, name: '' });
+//   const [confirm, setConfirm]           = useState({ open: false, id: null, name: "" });
+//   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
 
 //   useEffect(() => { fetchAuthors(); fetchCategories(); }, []);
 
@@ -77,28 +85,45 @@
 //     catch (e) { console.error(e); }
 //     finally { setLoading(false); }
 //   }
+
 //   async function fetchCategories() {
 //     try { const r = await categoriesAdminAPI.getAll(); setCategories(r.data); }
 //     catch (e) { console.error(e); }
 //   }
 
+//   function handleNameChange(value) {
+//     const updated = { ...formData, name: value };
+//     if (!slugManuallyEdited) {
+//       updated.slug = generateSlug(value);
+//     }
+//     setFormData(updated);
+//     if (formErrors.name) setFormErrors((p) => ({ ...p, name: "" }));
+//     if (formErrors.api)  setFormErrors((p) => ({ ...p, api: "" }));
+//   }
+
+//   function handleSlugChange(value) {
+//     setSlugManuallyEdited(true);
+//     setFormData((p) => ({ ...p, slug: value.toLowerCase().replace(/[^a-z0-9-]/g, "") }));
+//     if (formErrors.slug) setFormErrors((p) => ({ ...p, slug: "" }));
+//   }
+
 //   function validate() {
 //     const e = {};
-//     if (!formData.name.trim())    e.name     = 'Name is required.';
-//     if (!formData.category)       e.category = 'Category is required.';
-//     if (!formData.country.trim()) e.country  = 'Country is required.';
-//     if (!formData.bio.trim())     e.bio      = 'Bio is required.';
+//     if (!formData.name.trim())    e.name     = "Name is required.";
+//     if (!formData.slug.trim())    e.slug     = "Slug is required.";
+//     if (!formData.category)       e.category = "Category is required.";
+//     if (!formData.country.trim()) e.country  = "Country is required.";
+//     if (!formData.bio.trim())     e.bio      = "Bio is required.";
 //     if (!formData.email.trim()) {
-//       e.email = 'Email is required.';
+//       e.email = "Email is required.";
 //     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-//       e.email = 'Invalid email address.';
+//       e.email = "Invalid email address.";
 //     }
-//     if (formData.websiteLink && !/^https?:\/\/.+/.test(formData.websiteLink)) {
-//       e.websiteLink = 'Must start with http:// or https://';
-//     }
-//     ['twitter', 'quora', 'reddit', 'medium'].forEach((f) => {
+//     if (formData.websiteLink && !/^https?:\/\/.+/.test(formData.websiteLink))
+//       e.websiteLink = "Must start with http:// or https://";
+//     ["twitter", "quora", "reddit", "medium"].forEach((f) => {
 //       const v = formData.social[f];
-//       if (v && !/^https?:\/\/.+/.test(v)) e[`social_${f}`] = 'Must start with http:// or https://';
+//       if (v && !/^https?:\/\/.+/.test(v)) e[`social_${f}`] = "Must start with http:// or https://";
 //     });
 //     setFormErrors(e);
 //     return Object.keys(e).length === 0;
@@ -106,8 +131,8 @@
 
 //   function handleImageChange(e) {
 //     const f = e.target.files[0]; if (!f) return;
-//     if (f.type !== 'image/webp') { setImageToast('Only .webp images are allowed.'); e.target.value = ''; return; }
-//     setImageToast('');
+//     if (f.type !== "image/webp") { setImageToast("Only .webp images are allowed."); e.target.value = ""; return; }
+//     setImageToast("");
 //     setImageFile(f);
 //     const r = new FileReader();
 //     r.onloadend = () => setImagePreview(r.result);
@@ -120,8 +145,8 @@
 //     setSaving(true);
 //     try {
 //       const fd = new FormData();
-//       fd.append('data', JSON.stringify(formData));
-//       if (imageFile) fd.append('profileImage', imageFile);
+//       fd.append("data", JSON.stringify(formData));
+//       if (imageFile) fd.append("profileImage", imageFile);
 //       if (editingAuthor) {
 //         await authorsAdminAPI.update(editingAuthor._id, fd);
 //       } else {
@@ -130,7 +155,7 @@
 //       await fetchAuthors();
 //       closeModal();
 //     } catch (err) {
-//       setFormErrors({ api: err.response?.data?.message || 'Failed to save author.' });
+//       setFormErrors({ api: err.response?.data?.message || "Failed to save author." });
 //     } finally {
 //       setSaving(false);
 //     }
@@ -140,25 +165,27 @@
 //     if (author) {
 //       setEditingAuthor(author);
 //       setFormData({
-//         name:        author.name || '',
-//         gender:      author.gender || 'Male',
-//         country:     author.country || '',
-//         bio:         author.bio || '',
-//         websiteLink: author.websiteLink || '',
-//         email:       author.email || '',
-//         category:    author.category?._id || author.category || '',
-//         social:      author.social || { twitter: '', quora: '', reddit: '', medium: '' },
+//         name:        author.name || "",
+//         slug:        author.slug || generateSlug(author.name || ""),
+//         gender:      author.gender || "Male",
+//         country:     author.country || "",
+//         bio:         author.bio || "",
+//         websiteLink: author.websiteLink || "",
+//         email:       author.email || "",
+//         category:    author.category?._id || author.category || "",
+//         social:      author.social || { twitter: "", quora: "", reddit: "", medium: "" },
 //       });
-//       // ImageKit URLs are already absolute — use resolveImg for both legacy and new
-//       setImagePreview(author.profileImage ? resolveImg(author.profileImage) : '');
+//       setSlugManuallyEdited(true); // don't auto-overwrite slug when editing
+//       setImagePreview(author.profileImage ? resolveImg(author.profileImage) : "");
 //     } else {
 //       setEditingAuthor(null);
 //       setFormData(EMPTY_FORM);
-//       setImagePreview('');
+//       setImagePreview("");
 //       setImageFile(null);
+//       setSlugManuallyEdited(false);
 //     }
 //     setFormErrors({});
-//     setImageToast('');
+//     setImageToast("");
 //     setShowModal(true);
 //   }
 
@@ -166,30 +193,20 @@
 //     setShowModal(false);
 //     setEditingAuthor(null);
 //     setImageFile(null);
-//     setImagePreview('');
+//     setImagePreview("");
 //     setFormErrors({});
-//     setImageToast('');
+//     setImageToast("");
+//     setSlugManuallyEdited(false);
 //   }
 
 //   function setSocial(key, val) {
 //     setFormData((p) => ({ ...p, social: { ...p.social, [key]: val } }));
-//     if (formErrors[`social_${key}`]) setFormErrors((p) => ({ ...p, [`social_${key}`]: '' }));
-//   }
-
-//   function f(key) {
-//     return {
-//       value: formData[key],
-//       onChange: (e) => {
-//         setFormData((p) => ({ ...p, [key]: e.target.value }));
-//         if (formErrors[key]) setFormErrors((p) => ({ ...p, [key]: '' }));
-//         if (formErrors.api) setFormErrors((p) => ({ ...p, api: '' }));
-//       },
-//     };
+//     if (formErrors[`social_${key}`]) setFormErrors((p) => ({ ...p, [`social_${key}`]: "" }));
 //   }
 
 //   const inpCls = (key) =>
 //     `w-full bg-gray-900 border rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:border-[#F5C645] transition-colors ${
-//       formErrors[key] ? 'border-red-500' : 'border-gray-700'
+//       formErrors[key] ? "border-red-500" : "border-gray-700"
 //     }`;
 
 //   return (
@@ -200,10 +217,10 @@
 //         message={`Delete "${confirm.name}"? This cannot be undone.`}
 //         onConfirm={async () => {
 //           try { await authorsAdminAPI.delete(confirm.id); await fetchAuthors(); }
-//           catch (err) { alert(err.response?.data?.message || 'Failed to delete author.'); }
-//           finally { setConfirm({ open: false, id: null, name: '' }); }
+//           catch (err) { alert(err.response?.data?.message || "Failed to delete author."); }
+//           finally { setConfirm({ open: false, id: null, name: "" }); }
 //         }}
-//         onCancel={() => setConfirm({ open: false, id: null, name: '' })}
+//         onCancel={() => setConfirm({ open: false, id: null, name: "" })}
 //         confirmText="Delete"
 //       />
 
@@ -240,7 +257,7 @@
 
 //       {search && (
 //         <p className="text-gray-500 text-xs mb-4">
-//           {filtered.length} result{filtered.length !== 1 ? 's' : ''} for "{search}"
+//           {filtered.length} result{filtered.length !== 1 ? "s" : ""} for "{search}"
 //         </p>
 //       )}
 
@@ -264,11 +281,7 @@
 //                 className="bg-gradient-to-br from-gray-900 to-black border border-[#F5C645]/20 rounded-2xl p-5 sm:p-6 hover:border-[#F5C645]/40 transition-all duration-300">
 //                 <div className="flex items-start gap-3 mb-4">
 //                   {avatarSrc ? (
-//                     <img
-//                       src={avatarSrc}
-//                       alt={author.name}
-//                       className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover shrink-0"
-//                     />
+//                     <img src={avatarSrc} alt={author.name} className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover shrink-0" />
 //                   ) : (
 //                     <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#F5C645]/20 flex items-center justify-center shrink-0">
 //                       <FiUser className="text-[#F5C645]" size={20} />
@@ -278,8 +291,13 @@
 //                     <h3 className="text-white text-base sm:text-lg font-semibold truncate">{author.name}</h3>
 //                     <p className="text-[#F5C645] text-xs mt-0.5">{author.category?.name}</p>
 //                     <p className="text-gray-500 text-xs flex items-center gap-1 mt-0.5">
-//                       <FiMapPin size={10} />{author.country || 'Unknown'}
+//                       <FiMapPin size={10} />{author.country || "Unknown"}
 //                     </p>
+//                     {/* {author.slug && (
+//                       <p className="text-gray-600 text-xs flex items-center gap-1 mt-0.5">
+//                         <FiLink size={10} />/authors/{author.slug}
+//                       </p>
+//                     )} */}
 //                   </div>
 //                   <div className="flex gap-1 shrink-0">
 //                     <button onClick={() => openModal(author)} className="p-1.5 text-blue-400 hover:bg-blue-400/10 rounded-lg cursor-pointer"><FiEdit2 size={16} /></button>
@@ -307,89 +325,163 @@
 //           <div className="max-w-2xl mx-auto my-4 sm:my-8">
 //             <div className="bg-[#0d0d0d] border border-[#F5C645]/20 rounded-2xl">
 //               <div className="flex justify-between items-center px-5 sm:px-6 py-4 border-b border-gray-800 sticky top-0 bg-[#0d0d0d]/95 backdrop-blur rounded-t-2xl z-10">
-//                 <h2 className="text-white text-lg sm:text-xl font-semibold">{editingAuthor ? 'Edit Author' : 'Add Author'}</h2>
+//                 <h2 className="text-white text-lg sm:text-xl font-semibold">{editingAuthor ? "Edit Author" : "Add Author"}</h2>
 //                 <button onClick={closeModal} className="text-gray-400 hover:text-white cursor-pointer p-1"><FiX size={20} /></button>
 //               </div>
 
 //               <form onSubmit={handleSubmit} className="px-5 sm:px-6 pb-6 pt-4 space-y-5 max-h-[80vh] overflow-y-auto">
-//                 {formErrors.api && (
-//                   <div className="flex items-start gap-3 bg-red-950/60 border border-red-500/40 text-red-300 px-4 py-3 rounded-xl text-sm">
-//                     <FiAlertCircle size={15} className="shrink-0 mt-0.5" />{formErrors.api}
-//                   </div>
-//                 )}
 
 //                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+//                   {/* Name */}
 //                   <div>
 //                     <label className="block text-gray-300 mb-1.5 text-sm">Name <span className="text-red-400">*</span></label>
-//                     <input type="text" {...f('name')} className={inpCls('name')} placeholder="Full name" />
+//                     <input
+//                       type="text"
+//                       value={formData.name}
+//                       onChange={(e) => handleNameChange(e.target.value)}
+//                       className={inpCls("name")}
+//                       placeholder="Full name"
+//                     />
 //                     {formErrors.name && <p className="text-red-400 text-xs mt-1">{formErrors.name}</p>}
 //                   </div>
+
+//                   {/* Slug */}
+//                   <div>
+//                     <label className="block text-gray-300 mb-1.5 text-sm">
+//                       Slug <span className="text-red-400">*</span>
+//                       <span className="text-gray-500 text-xs ml-1">(auto-generated)</span>
+//                     </label>
+//                     <div className="relative">
+//                       <FiLink size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+//                       <input
+//                         type="text"
+//                         value={formData.slug}
+//                         onChange={(e) => handleSlugChange(e.target.value)}
+//                         className={`${inpCls("slug")} pl-8`}
+//                         placeholder="author-slug"
+//                       />
+//                     </div>
+//                     {formErrors.slug && <p className="text-red-400 text-xs mt-1">{formErrors.slug}</p>}
+//                     {formData.slug && (
+//                       <p className="text-gray-600 text-xs mt-1">/authors/{formData.slug}</p>
+//                     )}
+//                   </div>
+
+//                   {/* Gender */}
 //                   <div>
 //                     <label className="block text-gray-300 mb-1.5 text-sm">Gender</label>
-//                     <select {...f('gender')} className={inpCls('gender') + ' cursor-pointer'}>
+//                     <select
+//                       value={formData.gender}
+//                       onChange={(e) => setFormData((p) => ({ ...p, gender: e.target.value }))}
+//                       className={inpCls("gender") + " cursor-pointer"}
+//                     >
 //                       <option value="Male">Male</option>
 //                       <option value="Female">Female</option>
 //                       <option value="Other">Other</option>
 //                     </select>
 //                   </div>
+
+//                   {/* Country */}
 //                   <div>
 //                     <label className="block text-gray-300 mb-1.5 text-sm">Country <span className="text-red-400">*</span></label>
-//                     <input type="text" {...f('country')} className={inpCls('country')} placeholder="e.g. United Kingdom" />
+//                     <input
+//                       type="text"
+//                       value={formData.country}
+//                       onChange={(e) => { setFormData((p) => ({ ...p, country: e.target.value })); setFormErrors((p) => ({ ...p, country: "" })); }}
+//                       className={inpCls("country")}
+//                       placeholder="e.g. United Kingdom"
+//                     />
 //                     {formErrors.country && <p className="text-red-400 text-xs mt-1">{formErrors.country}</p>}
 //                   </div>
+
+//                   {/* Email */}
 //                   <div>
 //                     <label className="block text-gray-300 mb-1.5 text-sm">Email <span className="text-red-400">*</span></label>
-//                     <input type="email" {...f('email')} className={inpCls('email')} placeholder="author@example.com" />
+//                     <input
+//                       type="email"
+//                       value={formData.email}
+//                       onChange={(e) => { setFormData((p) => ({ ...p, email: e.target.value })); setFormErrors((p) => ({ ...p, email: "" })); }}
+//                       className={inpCls("email")}
+//                       placeholder="author@example.com"
+//                     />
 //                     {formErrors.email && <p className="text-red-400 text-xs mt-1">{formErrors.email}</p>}
 //                   </div>
+
+//                   {/* Category */}
 //                   <div>
 //                     <label className="block text-gray-300 mb-1.5 text-sm">Category <span className="text-red-400">*</span></label>
-//                     <select value={formData.category}
-//                       onChange={(e) => { setFormData((p) => ({ ...p, category: e.target.value })); setFormErrors((p) => ({ ...p, category: '' })); }}
-//                       className={inpCls('category') + ' cursor-pointer'}>
+//                     <select
+//                       value={formData.category}
+//                       onChange={(e) => { setFormData((p) => ({ ...p, category: e.target.value })); setFormErrors((p) => ({ ...p, category: "" })); }}
+//                       className={inpCls("category") + " cursor-pointer"}
+//                     >
 //                       <option value="">Select Category</option>
 //                       {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
 //                     </select>
 //                     {formErrors.category && <p className="text-red-400 text-xs mt-1">{formErrors.category}</p>}
 //                   </div>
-//                   <div>
+
+//                   {/* Website */}
+//                   <div className="sm:col-span-2">
 //                     <label className="block text-gray-300 mb-1.5 text-sm">Website URL</label>
-//                     <input type="url" {...f('websiteLink')} placeholder="https://example.com" className={inpCls('websiteLink')} />
+//                     <input
+//                       type="url"
+//                       value={formData.websiteLink}
+//                       onChange={(e) => { setFormData((p) => ({ ...p, websiteLink: e.target.value })); setFormErrors((p) => ({ ...p, websiteLink: "" })); }}
+//                       placeholder="https://example.com"
+//                       className={inpCls("websiteLink")}
+//                     />
 //                     {formErrors.websiteLink && <p className="text-red-400 text-xs mt-1">{formErrors.websiteLink}</p>}
 //                   </div>
 //                 </div>
 
+//                 {/* Bio */}
 //                 <div>
 //                   <label className="block text-gray-300 mb-1.5 text-sm">Bio <span className="text-red-400">*</span></label>
-//                   <textarea {...f('bio')} rows={4} className={inpCls('bio')} placeholder="Short author biography…" />
+//                   <textarea
+//                     value={formData.bio}
+//                     onChange={(e) => { setFormData((p) => ({ ...p, bio: e.target.value })); setFormErrors((p) => ({ ...p, bio: "" })); }}
+//                     rows={4}
+//                     className={inpCls("bio")}
+//                     placeholder="Short author biography…"
+//                   />
 //                   {formErrors.bio && <p className="text-red-400 text-xs mt-1">{formErrors.bio}</p>}
 //                 </div>
 
+//                 {/* Profile Image */}
 //                 <div>
 //                   <label className="block text-gray-300 mb-1.5 text-sm">Profile Image</label>
 //                   <p className="text-gray-500 text-xs mb-2">Only .webp format · Under 100 KB · Uploaded to ImageKit CDN</p>
-//                   <input type="file" accept=".webp,image/webp" onChange={handleImageChange}
-//                     className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:border-[#F5C645] file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-[#F5C645] file:text-black hover:file:bg-[#F5C645]/90 file:cursor-pointer cursor-pointer" />
+//                   <input
+//                     type="file"
+//                     accept=".webp,image/webp"
+//                     onChange={handleImageChange}
+//                     className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:border-[#F5C645] file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-[#F5C645] file:text-black hover:file:bg-[#F5C645]/90 file:cursor-pointer cursor-pointer"
+//                   />
 //                   {imagePreview && <img src={imagePreview} alt="preview" className="mt-3 h-16 w-16 rounded-full object-cover" />}
-//                   <ImageToast message={imageToast} onClose={() => setImageToast('')} />
+//                   <ImageToast message={imageToast} onClose={() => setImageToast("")} />
 //                 </div>
 
+//                 {/* Social Links */}
 //                 <div>
 //                   <p className="text-[#F5C645] font-semibold text-sm uppercase tracking-wider mb-3">Social Links</p>
 //                   <div className="space-y-3">
 //                     {[
-//                       { key: 'twitter', icon: <FiTwitter size={15} />, ph: 'https://x.com/...' },
-//                       { key: 'quora',   icon: <FaQuora size={15} />,   ph: 'https://quora.com/...' },
-//                       { key: 'reddit',  icon: <FaRedditAlien size={15} />, ph: 'https://reddit.com/...' },
-//                       { key: 'medium',  icon: <FaMedium size={15} />,  ph: 'https://medium.com/...' },
+//                       { key: "twitter", icon: <FiTwitter size={15} />, ph: "https://x.com/..." },
+//                       { key: "quora",   icon: <FaQuora size={15} />,   ph: "https://quora.com/..." },
+//                       { key: "reddit",  icon: <FaRedditAlien size={15} />, ph: "https://reddit.com/..." },
+//                       { key: "medium",  icon: <FaMedium size={15} />,  ph: "https://medium.com/..." },
 //                     ].map(({ key, icon, ph }) => (
 //                       <div key={key}>
 //                         <div className="flex items-center gap-3">
 //                           <span className="text-gray-500 shrink-0">{icon}</span>
-//                           <input type="url" value={formData.social[key]}
+//                           <input
+//                             type="url"
+//                             value={formData.social[key]}
 //                             onChange={(e) => setSocial(key, e.target.value)}
 //                             placeholder={ph}
-//                             className={`flex-1 bg-gray-900 border rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:border-[#F5C645] transition-colors ${formErrors[`social_${key}`] ? 'border-red-500' : 'border-gray-700'}`} />
+//                             className={`flex-1 bg-gray-900 border rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:border-[#F5C645] transition-colors ${formErrors[`social_${key}`] ? "border-red-500" : "border-gray-700"}`}
+//                           />
 //                         </div>
 //                         {formErrors[`social_${key}`] && <p className="text-red-400 text-xs mt-1 ml-6">{formErrors[`social_${key}`]}</p>}
 //                       </div>
@@ -397,6 +489,13 @@
 //                   </div>
 //                 </div>
 
+//                   {formErrors.api && (
+//                   <div className="flex items-start gap-3 bg-red-950/60 border border-red-500/40 text-red-300 px-4 py-3 rounded-xl text-sm">
+//                     <FiAlertCircle size={15} className="shrink-0 mt-0.5" />{formErrors.api}
+//                   </div>
+//                 )}
+
+//                 {/* Buttons */}
 //                 <div className="flex gap-3 pt-2">
 //                   <button type="button" onClick={closeModal} disabled={saving}
 //                     className="flex-1 py-2.5 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-800 transition-all cursor-pointer text-sm">
@@ -405,7 +504,7 @@
 //                   <button type="submit" disabled={saving}
 //                     className="flex-1 py-2.5 bg-[#F5C645] text-black rounded-lg hover:bg-[#F5C645]/90 transition-all font-semibold disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 text-sm">
 //                     <FiSave size={15} />
-//                     {saving ? 'Saving…' : editingAuthor ? 'Update Author' : 'Save Author'}
+//                     {saving ? "Saving…" : editingAuthor ? "Update Author" : "Save Author"}
 //                   </button>
 //                 </div>
 //               </form>
@@ -437,12 +536,22 @@ const resolveImg = (src) => {
   return `${API_BASE.replace("/api", "")}${src}`;
 };
 
+// ✅ Updated slug generation to only use letters and hyphens (no numbers)
 function generateSlug(name) {
   return name
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+    .replace(/[^a-z]+/g, "-")  // Remove anything that's not a letter, replace with hyphen
+    .replace(/-+/g, "-")        // Replace multiple hyphens with single hyphen
+    .replace(/^-|-$/g, "");     // Remove leading/trailing hyphens
+}
+
+// ✅ Helper function to validate slug format
+function isValidSlug(slug) {
+  // Slug must contain only lowercase letters and hyphens
+  // Must start and end with a letter, no consecutive hyphens
+  const slugRegex = /^[a-z]+(-[a-z]+)*$/;
+  return slugRegex.test(slug);
 }
 
 function ImageToast({ message, onClose }) {
@@ -518,16 +627,26 @@ export default function AuthorsPage() {
     if (formErrors.api)  setFormErrors((p) => ({ ...p, api: "" }));
   }
 
+  // ✅ Updated slug change handler with validation
   function handleSlugChange(value) {
+    // Only allow lowercase letters and hyphens
+    const cleaned = value.toLowerCase().replace(/[^a-z-]/g, "");
     setSlugManuallyEdited(true);
-    setFormData((p) => ({ ...p, slug: value.toLowerCase().replace(/[^a-z0-9-]/g, "") }));
+    setFormData((p) => ({ ...p, slug: cleaned }));
     if (formErrors.slug) setFormErrors((p) => ({ ...p, slug: "" }));
   }
 
   function validate() {
     const e = {};
     if (!formData.name.trim())    e.name     = "Name is required.";
-    if (!formData.slug.trim())    e.slug     = "Slug is required.";
+    
+    // ✅ Slug validation
+    if (!formData.slug.trim()) {
+      e.slug = "Slug is required.";
+    } else if (!isValidSlug(formData.slug)) {
+      e.slug = "Slug must contain only lowercase letters and hyphens (e.g., 'john-doe'). No numbers or special characters allowed.";
+    }
+    
     if (!formData.category)       e.category = "Category is required.";
     if (!formData.country.trim()) e.country  = "Country is required.";
     if (!formData.bio.trim())     e.bio      = "Bio is required.";
@@ -710,11 +829,6 @@ export default function AuthorsPage() {
                     <p className="text-gray-500 text-xs flex items-center gap-1 mt-0.5">
                       <FiMapPin size={10} />{author.country || "Unknown"}
                     </p>
-                    {/* {author.slug && (
-                      <p className="text-gray-600 text-xs flex items-center gap-1 mt-0.5">
-                        <FiLink size={10} />/authors/{author.slug}
-                      </p>
-                    )} */}
                   </div>
                   <div className="flex gap-1 shrink-0">
                     <button onClick={() => openModal(author)} className="p-1.5 text-blue-400 hover:bg-blue-400/10 rounded-lg cursor-pointer"><FiEdit2 size={16} /></button>
@@ -747,11 +861,6 @@ export default function AuthorsPage() {
               </div>
 
               <form onSubmit={handleSubmit} className="px-5 sm:px-6 pb-6 pt-4 space-y-5 max-h-[80vh] overflow-y-auto">
-                {formErrors.api && (
-                  <div className="flex items-start gap-3 bg-red-950/60 border border-red-500/40 text-red-300 px-4 py-3 rounded-xl text-sm">
-                    <FiAlertCircle size={15} className="shrink-0 mt-0.5" />{formErrors.api}
-                  </div>
-                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Name */}
@@ -780,13 +889,14 @@ export default function AuthorsPage() {
                         value={formData.slug}
                         onChange={(e) => handleSlugChange(e.target.value)}
                         className={`${inpCls("slug")} pl-8`}
-                        placeholder="author-slug"
+                        placeholder="john-doe"
                       />
                     </div>
                     {formErrors.slug && <p className="text-red-400 text-xs mt-1">{formErrors.slug}</p>}
-                    {formData.slug && (
+                    {formData.slug && !formErrors.slug && (
                       <p className="text-gray-600 text-xs mt-1">/authors/{formData.slug}</p>
                     )}
+                    <p className="text-gray-500 text-xs mt-1">Only lowercase letters and hyphens allowed (e.g., "john-doe")</p>
                   </div>
 
                   {/* Gender */}
@@ -910,6 +1020,12 @@ export default function AuthorsPage() {
                     ))}
                   </div>
                 </div>
+
+                  {formErrors.api && (
+                  <div className="flex items-start gap-3 bg-red-950/60 border border-red-500/40 text-red-300 px-4 py-3 rounded-xl text-sm">
+                    <FiAlertCircle size={15} className="shrink-0 mt-0.5" />{formErrors.api}
+                  </div>
+                )}
 
                 {/* Buttons */}
                 <div className="flex gap-3 pt-2">
