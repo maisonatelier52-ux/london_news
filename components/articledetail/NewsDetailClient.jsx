@@ -414,6 +414,7 @@ export default function NewsDetailClient({
                     <a
                       href={`#${headingId}`}
                       className={`text-[13px] hover:text-[#F5C645] transition-colors ${activeHeading === headingId ? "text-[#F5C645] font-semibold" : "text-black/60"}`}
+                      title={`${heading.text}`}
                     >
                       {heading.text}
                     </a>
