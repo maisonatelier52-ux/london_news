@@ -1,4 +1,5 @@
 
+
 // app/admin/dashboard/page.jsx
 "use client";
 
@@ -9,6 +10,7 @@ import {
 } from "react-icons/fi";
 import { dashboardAdminAPI } from "@/services/adminAPI";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
+import Link from "next/link";
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -48,15 +50,28 @@ export default function AdminDashboard() {
   };
 
   const statCards = [
-    { title: 'Total Categories', value: stats.categoriesCount, icon: FiFolder,   color: 'from-yellow-500 to-orange-500' },
-    { title: 'Total Articles',   value: stats.articlesCount,   icon: FiFileText, color: 'from-blue-500 to-cyan-500'    },
-    { title: 'Total Authors',    value: stats.authorsCount,    icon: FiUsers,    color: 'from-green-500 to-emerald-500' },
+    { title: 'Total Categories', value: stats.categoriesCount, icon: FiFolder,   color: 'from-yellow-500 to-orange-500', href: '/admin/categories' },
+    { title: 'Total Articles',   value: stats.articlesCount,   icon: FiFileText, color: 'from-blue-500 to-cyan-500', href: '/admin/articles'    },
+    { title: 'Total Authors',    value: stats.authorsCount,    icon: FiUsers,    color: 'from-green-500 to-emerald-500', href: '/admin/authors' },
   ];
 
-  const formatDate = (d) =>
-    new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) +
-    ' · ' +
-    new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  // ✅ Updated formatDate function with AM/PM display
+  const formatDate = (d) => {
+    const date = new Date(d);
+    const formattedDate = date.toLocaleDateString('en-GB', { 
+      day: '2-digit', 
+      month: 'short', 
+      year: 'numeric' 
+    });
+    
+    const formattedTime = date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+    
+    return `${formattedDate} · ${formattedTime}`;
+  };
 
   const actionColor = (action) => {
     const a = action.toLowerCase();
@@ -93,8 +108,9 @@ export default function AdminDashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {statCards.map(({ title, value, icon: Icon, color }) => (
-          <div key={title}
+        {statCards.map(({ title, value, icon: Icon, color, href }) => (
+          <Link href={href} title={`admin ${title} page`}>
+             <div key={title}
             className="bg-gradient-to-br from-gray-900 to-black border border-[#F5C645]/20 rounded-2xl p-6 hover:border-[#F5C645]/40 transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
               <div className={`p-3 rounded-xl bg-gradient-to-br ${color}`}>
@@ -105,6 +121,7 @@ export default function AdminDashboard() {
             <h3 className="text-gray-400 text-sm uppercase tracking-wide">{title}</h3>
             <p className="text-white text-3xl font-bold mt-2">{value}</p>
           </div>
+          </Link>
         ))}
       </div>
 
