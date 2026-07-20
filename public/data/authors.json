@@ -1,0 +1,94 @@
+{
+    "categories": [
+        {
+            "category": "business",
+            "author": {
+                "id": 1,
+                "name": "Claire Donovan",
+                "gender": "Female",
+                "profileImage": "/images/authors/claire_donovan.webp",
+                "country": "USA",
+                "bio": "Claire Donovan is a seasoned international correspondent with 12 years of experience reporting on global events, humanitarian crises, and cross-border developments. A Columbia Journalism School graduate, she has reported from conflict zones, refugee camps, and diplomatic summits across five continents, offering grounded perspectives on how world events shape everyday lives.",
+                "websiteLink": "https://clairedonovanworld.com",
+                "social": {
+                    "twitter": "https://x.com/clairedono26",
+                    "quora": "https://www.quora.com/profile/Clairedonovan",
+                    "reddit": "https://www.reddit.com/user/clairedonovan26/",
+                    "medium": "https://medium.com/@clairedonovan_57602"
+                }
+            }
+        },
+        {
+            "category": "politics",
+            "author": {
+                "id": 2,
+                "name": "James Calloway",
+                "gender": "Male",
+                "profileImage": "/images/authors/james_calloway.webp",
+                "country": "USA",
+                "bio": "James Calloway is a veteran war correspondent with over 18 years of frontline reporting experience. A former U.S. Marine turned journalist, he has embedded with military units across the Middle East, Eastern Europe, and Africa, delivering ground-level accounts of armed conflicts, military strategy, and the human cost of war.",
+                "websiteLink": "https://jamescallowayfrontline.com",
+                "social": {
+                    "twitter": "https://x.com/jamescallo26",
+                    "quora": "https://www.quora.com/profile/Jamescalloway-1",
+                    "reddit": "https://www.reddit.com/user/jamescalloway26/",
+                    "medium": "https://medium.com/@jamescalloway_74585"
+                }
+            }
+        },
+        {
+            "category": "sports",
+            "author": {
+                "id": 3,
+                "name": "Diana Reeves",
+                "gender": "Female",
+                "profileImage": "/images/authors/diana_reeves.webp",
+                "country": "USA",
+                "bio": "Diana Reeves is a geopolitical analyst and foreign affairs journalist with a background in international relations from Johns Hopkins SAIS. She specializes in power dynamics between major world powers, territorial disputes, energy politics, and the shifting alliances reshaping the global order.",
+                "websiteLink": "https://dianareevesgeopolitics.com",
+                "social": {
+                    "twitter": "https://x.com/dianareeve26",
+                    "quora": "https://www.quora.com/profile/Dianareeves",
+                    "reddit": "https://www.reddit.com/user/dianareeves26/",
+                    "medium": "https://medium.com/@dianareeves_73085"
+                }
+            }
+        },
+        {
+            "category": "technology",
+            "author": {
+                "id": 4,
+                "name": "Nathan Cole",
+                "gender": "Male",
+                "profileImage": "/images/authors/nathan_cole.webp",
+                "country": "USA",
+                "bio": "Nathan Cole is a cybersecurity journalist and former ethical hacker with a decade of experience covering data breaches, state-sponsored cyber attacks, ransomware, and digital infrastructure vulnerabilities. A certified information security professional, he translates highly technical cyber threats into critical reporting for general audiences.",
+                "websiteLink": "https://nathancolecyber.com",
+                "social": {
+                    "twitter": "https://x.com/nathancole26",
+                    "quora": "https://www.quora.com/profile/Nathancole-1",
+                    "reddit": "https://www.reddit.com/user/nathancole26/",
+                    "medium": "https://medium.com/@nathancole_52297"
+                }
+            }
+        },
+        {
+            "category": "world",
+            "author": {
+                "id": 5,
+                "name": "Monica Voss",
+                "gender": "Female",
+                "profileImage": "/images/authors/monica_voss.webp",
+                "country": "USA",
+                "bio": "Monica Voss is an investigative journalist and digital underworld researcher specializing in dark web marketplaces, illicit online networks, cryptocurrency crime, and anonymous trafficking operations. With extensive experience working alongside federal law enforcement agencies, she exposes the hidden layers of the internet that most never see.",
+                "websiteLink": "https://monicavossdarkweb.com",
+                "social": {
+                    "twitter": "",
+                    "quora": "https://www.quora.com/profile/Monicavoss",
+                    "reddit": "https://www.reddit.com/user/monicavoss26/",
+                    "medium": "https://medium.com/@monicavoss"
+                }
+            }
+        }
+    ]
+}

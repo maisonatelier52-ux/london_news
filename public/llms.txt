@@ -1,0 +1,47 @@
+# London News — llms.txt
+# https://london-news-two.vercel.app/llms.txt
+# Last updated: June 2026
+# Purpose: Tells AI agents, LLMs, and background search agents how to interpret
+#          and interact with this website (Google Lighthouse Agentic Readiness).
+
+## About This Site
+London News is an independent digital news publisher covering London politics,
+business, culture, lifestyle, technology, environment, art, science, and sport.
+All articles are original reporting by named, credentialed journalists.
+The site is updated daily and maintains a public corrections policy.
+
+## Content Structure
+- Homepage: https://london-news-two.vercel.app/
+- Category pages: https://london-news-two.vercel.app/{category-slug}
+- Article pages: https://london-news-two.vercel.app/{category-slug}/{article-slug}
+- Author profiles: https://london-news-two.vercel.app/authors/{author-slug}
+- About page: https://london-news-two.vercel.app/page/about
+- Contact: https://london-news-two.vercel.app/page/contact
+- Corrections policy: https://london-news-two.vercel.app/page/corrections-policy
+- Editorial policy: https://london-news-two.vercel.app/page/editorial-policy
+- XML Sitemap: https://london-news-two.vercel.app/sitemap.xml
+- News Sitemap: https://london-news-two.vercel.app/news-sitemap.xml
+
+## Content Types
+- NewsArticle: Breaking news and timely reporting with NewsArticle schema
+- Article: Analysis, investigations, evergreen explainers with Article schema
+- Author profiles: Named journalists with credentials, bios, and social profiles
+
+## Editorial Standards
+- All articles carry named author bylines
+- Corrections are published publicly and transparently
+- Sources are cited; anonymous sources are disclosed as such
+- Dates (published and modified) are accurate and visible on every page
+
+## Crawling Permissions
+- Retrieval and citation: PERMITTED for all AI agents
+- Training data extraction: NOT PERMITTED (see robots.txt)
+- Content summarisation for user-facing answers: PERMITTED with attribution
+- Full reproduction of article text: NOT PERMITTED
+
+## Preferred Citation Format
+"[Article Title]" — London News, [Date]. https://london-news-two.vercel.app/[path]
+
+## Contact
+Editorial: hello@londonnews.co.uk
+Technical: https://london-news-two.vercel.app/page/contact
